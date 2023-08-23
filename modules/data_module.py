@@ -160,9 +160,11 @@ class Set:
         OLDY = y
 
         if outlier != False:
-            newOutlier = list(map(self.subList, outlier, [1] * int(len(outlier))))
+            newOutlier = reversed(list(map(self.subList, outlier, [1] * int(len(outlier)))))
+
             for outliers in newOutlier:
                 y.remove(OLDY[outliers - 1])
+
 
         xMean = statistics.mean(x)
         yMean = statistics.mean(y)
@@ -196,9 +198,9 @@ class Set:
 
         print(NRL, ORL, PC)
 
-        if 150 < abs(PC) < 400:
+        if 50 < abs(PC) < 100:
             return "outlier"
-        elif abs(PC) >= 400:
+        elif abs(PC) >= 100:
             return "breakout"
         else:
             return True
@@ -256,8 +258,8 @@ class Set:
             json.dump(RL[0], file)
 
     def newIndex(self, newS, i):
-        if int(newS[0]) != 0:
-            return newS[-1]
+        if int(newS) != 0:
+            return newS
         else:
             return i
 
@@ -279,7 +281,38 @@ class Set:
                 break
             l += -1
 
-        return [newOutliers[-1], newOutliers[0]]
+        return newOutliers[0]
+
+    # Set Classification
+
+    def classification(self, direction):
+        with open("data/classification.json", "r") as f:
+            loaded = json.load(f)
+
+        if str(loaded) != "{}":
+            loadedLength = len(loaded)
+
+            data = loaded
+
+            data["set" + str(loadedLength)] = direction
+
+            with open("data/classification.json", "w") as f:
+                json.dump(data, f)
+        else:
+            data = {}
+
+            data["set" + str(0)] = direction
+
+            with open("data/classification.json", "w") as f:
+                json.dump(data, f)
+
+    def setClassification(self, ORL):
+        if ORL > 0.00002:
+            self.classification("UPWARD")
+        elif ORL < -0.00002:
+            self.classification("DOWN")
+        else:
+            self.classification("LATERAL")
 
     def cleanUp(self):
         t = True
@@ -287,7 +320,7 @@ class Set:
         CLLength = len(CL) - 1
         i = 5
         s = 0
-        newS = [0]
+        newS = 0
         end = 5
 
         outlierIndexes = False
@@ -310,17 +343,23 @@ class Set:
 
                     if PC == "breakout":
                         if outlierIndexes != False:
-
                             newS = self.addLastOutliers(outlierIndexes, i)
 
+                        if int(newS) != 0:
 
-                        if int(newS[0]) != 0:
-                            self.newSet(CL[s : newS[-1]])
+                            print("NEWS NEWS = 0")
+                            self.newSet(CL[s : newS])
+
+                            self.setClassification(ORL)
+
                             s = self.newIndex(newS, i)
-                            newS = [0]
+                            newS = 0
 
                         else:
                             self.newSet(CL[s:i])
+
+                            self.setClassification(ORL)
+
                             s = i
 
                         ResetRL = 0
@@ -337,5 +376,5 @@ class Set:
 
             i += 1
             print(outlierIndexes, s, i)
-        
+
         return [s, i, outlierIndexes]
