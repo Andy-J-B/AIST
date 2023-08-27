@@ -13,7 +13,7 @@ t = True
 
 # Set
 
-stock1 = "SHop"
+stock1 = "shop"
 
 data1 = db.Data(stock1)
 ST1 = db.Set(data1.findData())
@@ -24,7 +24,7 @@ if MVC1 == True:
     s = clean[0]
     i = clean[1]
     outlierIndexed = clean[2]
-    newS = [0]
+    newS = 0
 
     print("Done Clean Up \n\n")
 
@@ -47,18 +47,28 @@ if MVC1 == True:
                 RL = ST.regressionLine(CL[s:i], outlierIndexes)[0]  # NRL
                 PC = ST.regressionLineDifference(RL, ORL)
 
-                if PC == "breakout":
+                if PC == "breakout" or (i - 3) > 9:
                     if outlierIndexes != False:
                         newS = ST.addLastOutliers(outlierIndexes, i)
 
-                    if int(newS[0]) != 0:
-                        ST.newSet(CL[s : newS[-1]])
-                        s = ST.newIndex(newS, i)
-                        newS = [0]
+                    if int(newS) != 0:
+                        classification = ST.setClassification(ORL)
+                        polishedEnd = ST.polisher(classification, CL[s:newS], s, newS)
+                        print(f"\n\n{polishedEnd}\n\n")
+                        ST.newSet(CL[s:polishedEnd])
+
+                        s = polishedEnd
+                        i = polishedEnd
+                        newS = 0
 
                     else:
-                        ST.newSet(CL[s:i])
-                        s = i
+                        classification = ST.setClassification(ORL)
+                        polishedEnd = ST.polisher(classification, CL[s:i], s, i)
+                        print(f"\n\n{polishedEnd}\n\n")
+                        ST.newSet(CL[s:polishedEnd])
+
+                        i = polishedEnd
+                        s = polishedEnd
 
                     ST.setRL(0)
 

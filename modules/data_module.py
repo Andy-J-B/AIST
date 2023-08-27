@@ -160,11 +160,12 @@ class Set:
         OLDY = y
 
         if outlier != False:
-            newOutlier = reversed(list(map(self.subList, outlier, [1] * int(len(outlier)))))
+            newOutlier = reversed(
+                list(map(self.subList, outlier, [1] * int(len(outlier))))
+            )
 
             for outliers in newOutlier:
                 y.remove(OLDY[outliers - 1])
-
 
         xMean = statistics.mean(x)
         yMean = statistics.mean(y)
@@ -309,10 +310,22 @@ class Set:
     def setClassification(self, ORL):
         if ORL > 0.00002:
             self.classification("UPWARD")
+            return "UPWARD"
         elif ORL < -0.00002:
             self.classification("DOWN")
+            return "DOWN"
         else:
             self.classification("LATERAL")
+            return "LATERAL"
+
+    def polisher(self, classifiction, set, s, end):
+        print(f"\n\n{classifiction, set, s, end, int(set.index(max(set)))}\n\n")
+        if classifiction == "UPWARD":
+            return s + int(set.index(max(set))) + 1
+        elif classifiction == "DOWN":
+            return s + int(set.index(min(set))) + 1
+        else:
+            return end
 
     def cleanUp(self):
         t = True
@@ -321,14 +334,12 @@ class Set:
         i = 5
         s = 0
         newS = 0
-        end = 5
 
         outlierIndexes = False
 
         self.setFirstORL()
 
-        while end < CLLength:
-            end += 1
+        while i < CLLength:
             if (i - s) > 3:
                 with open("data/cleanUp.json", "r") as file:
                     ORL = json.load(file)
@@ -341,29 +352,32 @@ class Set:
                     RL = self.regressionLine(CL[s:i], outlierIndexes)[0]  # NRL
                     PC = self.regressionLineDifference(RL, ORL)
 
-                    if PC == "breakout":
+                    if PC == "breakout" or (i - 3) > 9:
                         if outlierIndexes != False:
                             newS = self.addLastOutliers(outlierIndexes, i)
 
                         if int(newS) != 0:
+                            classification = self.setClassification(ORL)
+                            polishedEnd = self.polisher(
+                                classification, CL[s:newS], s, newS
+                            )
+                            print(f"\n\n{polishedEnd}\n\n")
+                            self.newSet(CL[s:polishedEnd])
 
-                            print("NEWS NEWS = 0")
-                            self.newSet(CL[s : newS])
-
-                            self.setClassification(ORL)
-
-                            s = self.newIndex(newS, i)
+                            s = polishedEnd
+                            i = polishedEnd
                             newS = 0
 
                         else:
-                            self.newSet(CL[s:i])
+                            classification = self.setClassification(ORL)
+                            polishedEnd = self.polisher(classification, CL[s:i], s, i)
+                            print(f"\n\n{polishedEnd}\n\n")
+                            self.newSet(CL[s:polishedEnd])
 
-                            self.setClassification(ORL)
+                            i = polishedEnd
+                            s = polishedEnd
 
-                            s = i
-
-                        ResetRL = 0
-                        self.setRL(ResetRL)
+                        self.setRL(0)
 
                         outlierIndexes = False
 
