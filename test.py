@@ -51,24 +51,25 @@ if MVC1 == True:
                     if outlierIndexes != False:
                         newS = ST.addLastOutliers(outlierIndexes, i)
 
-                    if int(newS) != 0:
-                        classification = ST.setClassification(ORL)
-                        polishedEnd = ST.polisher(classification, CL[s:newS], s, newS)
-                        print(f"\n\n{polishedEnd}\n\n")
-                        ST.newSet(CL[s:polishedEnd])
+                    classification = ST.setClassification(ORL)
 
-                        s = polishedEnd
-                        i = polishedEnd
+                    if int(newS) != 0:
+                        polishedEnd = ST.polisher(classification, CL[s:newS], s, newS)
                         newS = 0
 
                     else:
-                        classification = ST.setClassification(ORL)
                         polishedEnd = ST.polisher(classification, CL[s:i], s, i)
-                        print(f"\n\n{polishedEnd}\n\n")
-                        ST.newSet(CL[s:polishedEnd])
 
-                        i = polishedEnd
-                        s = polishedEnd
+                    previousClass = ST.lastClassification()
+
+                    if previousClass == classification:
+                        ST.extendPreviousSet(CL[s:polishedEnd])
+                    else:
+                        ST.newSet(CL[s:polishedEnd])
+                        ST.makeClassification(classification)
+
+                    s = polishedEnd
+                    i = polishedEnd
 
                     ST.setRL(0)
 

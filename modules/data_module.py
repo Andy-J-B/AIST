@@ -206,6 +206,16 @@ class Set:
         else:
             return True
 
+    def setFirstORL(self):
+        CL = self.closeList()
+        RL = self.regressionLine(CL[0:4])
+        with open("data/cleanUp.json", "w") as file:
+            json.dump(RL[0], file)
+
+    def setRL(self, RL):
+        with open("data/cleanUp.json", "w") as file:
+            json.dump(RL, file)
+
     # RESET FUNCTION
 
     def reset(self):
@@ -252,21 +262,23 @@ class Set:
             with open("data/set.json", "w") as f:
                 json.dump(data, f)
 
-    def setFirstORL(self):
-        CL = self.closeList()
-        RL = self.regressionLine(CL[0:4])
-        with open("data/cleanUp.json", "w") as file:
-            json.dump(RL[0], file)
+    def extendPreviousSet(self, setList):
+        with open("data/set.json", "r") as f:
+            loaded = json.load(f)
 
-    def newIndex(self, newS, i):
-        if int(newS) != 0:
-            return newS
-        else:
-            return i
+        loadedLength = len(loaded)
 
-    def setRL(self, RL):
-        with open("data/cleanUp.json", "w") as file:
-            json.dump(RL, file)
+        sets = loaded[f"set{loadedLength-1}"]
+
+        i = len(sets)
+
+        for set in setList:
+            sets[str(i)] = set
+
+            i += 1
+
+        with open("data/set.json", "w") as f:
+            json.dump(loaded, f)
 
     def addLastOutliers(self, outliers, i):
         l = sorted(outliers).pop()
@@ -286,7 +298,7 @@ class Set:
 
     # Set Classification
 
-    def classification(self, direction):
+    def makeClassification(self, direction):
         with open("data/classification.json", "r") as f:
             loaded = json.load(f)
 
@@ -309,17 +321,27 @@ class Set:
 
     def setClassification(self, ORL):
         if ORL > 0.00002:
-            self.classification("UPWARD")
             return "UPWARD"
         elif ORL < -0.00002:
-            self.classification("DOWN")
             return "DOWN"
         else:
-            self.classification("LATERAL")
             return "LATERAL"
 
+    def lastClassification(self):
+        with open("data/classification.json", "r") as f:
+            classificationDict = json.load(f)
+
+        print(classificationDict)
+        clist = []
+        for values in classificationDict.values():
+            clist.append(values)
+
+        try:
+            return clist[-1]
+        except IndexError:
+            return "Error"
+
     def polisher(self, classifiction, set, s, end):
-        print(f"\n\n{classifiction, set, s, end, int(set.index(max(set)))}\n\n")
         if classifiction == "UPWARD":
             return s + int(set.index(max(set))) + 1
         elif classifiction == "DOWN":
@@ -356,26 +378,27 @@ class Set:
                         if outlierIndexes != False:
                             newS = self.addLastOutliers(outlierIndexes, i)
 
+                        classification = self.setClassification(ORL)
+
                         if int(newS) != 0:
-                            classification = self.setClassification(ORL)
                             polishedEnd = self.polisher(
                                 classification, CL[s:newS], s, newS
                             )
-                            print(f"\n\n{polishedEnd}\n\n")
-                            self.newSet(CL[s:polishedEnd])
-
-                            s = polishedEnd
-                            i = polishedEnd
                             newS = 0
 
                         else:
-                            classification = self.setClassification(ORL)
                             polishedEnd = self.polisher(classification, CL[s:i], s, i)
-                            print(f"\n\n{polishedEnd}\n\n")
-                            self.newSet(CL[s:polishedEnd])
 
-                            i = polishedEnd
-                            s = polishedEnd
+                        previousClass = self.lastClassification()
+
+                        if previousClass == classification:
+                            self.extendPreviousSet(CL[s:polishedEnd])
+                        else:
+                            self.newSet(CL[s:polishedEnd])
+                            self.makeClassification(classification)
+
+                        i = polishedEnd
+                        s = polishedEnd
 
                         self.setRL(0)
 
