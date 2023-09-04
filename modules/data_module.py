@@ -415,3 +415,71 @@ class Set:
             print(outlierIndexes, s, i)
 
         return [s, i, outlierIndexes]
+
+
+class SigValues(Set):
+    def __init__(self, data):
+        super().__init__(data)
+
+    def regressionLine(self, x, y):
+        xMean = statistics.mean(x)
+        yMean = statistics.mean(y)
+
+        xSubMean = list(map(self.subList, x, [xMean] * int(len(x))))
+        ySubMean = list(map(self.subList, y, [yMean] * int(len(y))))
+
+        sxy = list(map(self.productList, ySubMean, xSubMean))
+        sxx = list(map(self.productList, xSubMean, xSubMean))
+
+        slope = sum(sxy) / sum(sxx)
+        intercept = yMean - slope * xMean
+
+        return [slope, intercept]
+
+    def getData(self):
+        with open("data/classification.json", "r") as cla:
+            classData = json.load(cla)
+
+        with open("data/set.json", "r") as se:
+            setData = json.load(se)
+
+        return [classData, setData]
+
+    def sigfigmaker(self):
+        d = self.getData()[1]
+        c = self.getData()[0]
+
+        i = 0
+
+        sigfigs = {}
+        sigfiglow = {}
+        sigfighigh = {}
+        s = 0
+
+        for sets in d:
+            for keys, values in d[sets].items():
+                if keys == "0":
+                    sigfigs[i] = values
+                    if c[f"set{s}"] == "UPWARD":
+                        sigfiglow[i] = values
+                    if c[f"set{s}"] == "DOWN":
+                        sigfighigh[i] = values
+                elif keys == f"{len(sets)-1}":
+                    sigfigs[i] = values
+                    if c[f"set{s}"] == "DOWN":
+                        sigfiglow[i] = values
+                    if c[f"set{s}"] == "UPWARD":
+                        sigfighigh[i] = values
+
+                i += 1
+            s += 1
+
+        return [sigfigs, sigfiglow, sigfighigh]
+
+    def sigfigRegression(self):
+        sigfig = self.sigfigmaker()
+
+
+        print(self.regressionLine(list(sigfig[0].keys()), list(sigfig[0].values())))
+        print(self.regressionLine(list(sigfig[1].keys()), list(sigfig[1].values())))
+        print(self.regressionLine(list(sigfig[2].keys()), list(sigfig[2].values())))
