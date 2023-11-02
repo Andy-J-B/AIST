@@ -1,10 +1,22 @@
 # ARTIFICIAL INTELLIGENCE STOCK TRADER (AIST)
 
-# What it is
+# Project Description
 
-## Usage
+## Application
 
-## Contributing
+## Algorithms
 
-Pull requests are only welcome if you are given permission to or if you are in on the project.
-To ask to join you may contact (Petar@razlog.com).
+## Future Implementations
+
+# Installation
+
+# Usage
+
+# Major Contributors
+
+## AIST Developers :
+
+# Copyright
+
+Copyright (c) 2023, The Artificial Intelligence Stock Trader (AIST) developers, All rights reserved.
+Redistribution and use in source and binary forms, with or without modification, are not permitted.

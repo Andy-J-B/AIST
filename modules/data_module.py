@@ -1,20 +1,27 @@
-# IMPORTS
+# *** IMPORTS ***
 
-
+import json, shutil, statistics, os
 import yfinance as yf
-import os
 from datetime import datetime
-import json
-import shutil
-import statistics
-from scipy.stats import linregress
-import numpy as np
+
+
+# *** CLASSES ***
+
 
 # DATA CLASS
 
 
 class Data:
-    def __init__(self, stockSymbol, period="1d", interval="2m", index=".TO"):
+    """Data class to Read, Edit and Remove Data"""
+
+    # INITIATE VARIABLES
+    def __init__(
+        self,
+        stockSymbol: str,
+        period: str = "1d",
+        interval: str = "2m",
+        index: str = ".TO",
+    ):
         self.stockSymbol = stockSymbol
         self.period = period
         self.interval = interval
@@ -40,7 +47,7 @@ class Data:
     def makeFolder(self):
         os.mkdir(f"stocks/{self.stockSymbol}")
 
-    def folderExists(self):
+    def folderExists(self) -> bool:
         folderBoolean = os.path.exists(f"stocks/{self.stockSymbol}")
 
         return folderBoolean
@@ -56,7 +63,7 @@ class Data:
         newFile = open(f"stocks/{self.stockSymbol}/{date}.json", "x")
         newFile.close()
 
-    def fileExists(self):
+    def fileExists(self) -> bool:
         date = datetime.today().strftime("%Y-%m-%d")
         fileBoolean = os.path.exists(f"stocks/{self.stockSymbol}/{date}.json")
 
@@ -64,7 +71,7 @@ class Data:
 
     # DATA FUNCTIONS
 
-    def findData(self):
+    def findData(self) -> dict:
         stock = yf.Ticker(self.stockSymbol + self.index).history(
             period=self.period, interval=self.interval
         )
@@ -77,7 +84,7 @@ class Data:
         with open(f"stocks/{self.stockSymbol}/{date}.json", "w") as file:
             json.dump(data, file)
 
-    def makeData(self):
+    def makeData(self) -> dict:
         data = self.findData()
 
         dataDict = {}
@@ -111,7 +118,10 @@ class Data:
 
 
 class Set:
-    def __init__(self, data):
+
+    """Class that runs algorithms on sets, makes, polishes and classifies sets"""
+
+    def __init__(self, data: dict):
         self.data = data
 
     # CHECKER FUNCTIONS
@@ -128,7 +138,7 @@ class Set:
 
     # VALUES FUNCTIONS
 
-    def closeValues(self):
+    def closeValues(self) -> dict:
         dataDict = {}
 
         for i in range(len(self.data)):
@@ -136,7 +146,7 @@ class Set:
 
         return dataDict
 
-    def closeList(self):
+    def closeList(self) -> dict:
         dataDict = []
 
         for i in range(len(self.data)):
@@ -146,16 +156,16 @@ class Set:
 
     # REGRESSION LINE FUNCTIONS
 
-    def subList(self, a, b):
+    def subList(self, a: list, b: list) -> list:
         return a - b
 
-    def productList(self, a, b):
+    def productList(self, a: list, b: list) -> list:
         return a * b
 
-    def addList(self, a, b):
+    def addList(self, a: list, b: list) -> list:
         return a + b
 
-    def regressionLine(self, y, outlier=False):
+    def regressionLine(self, y: list, outlier=False) -> list:
         x = self.numberlistRL(len(y), outlier)
         OLDY = y
 
@@ -181,7 +191,7 @@ class Set:
 
         return [slope, intercept]
 
-    def numberlistRL(self, number, exempt=False):
+    def numberlistRL(self, number: int, exempt=False) -> list:
         numberlist = []
         for numbers in range(int(number)):
             numberlist.append(numbers)
@@ -194,7 +204,7 @@ class Set:
         final = list(map(self.addList, numberlist, [1] * int(len(numberlist))))
         return final
 
-    def regressionLineDifference(self, NRL, ORL):
+    def regressionLineDifference(self, NRL: float, ORL: float):
         PC = (abs((NRL - ORL)) / ORL) * 100.0
 
         print(NRL, ORL, PC)
@@ -212,7 +222,7 @@ class Set:
         with open("data/cleanUp.json", "w") as file:
             json.dump(RL[0], file)
 
-    def setRL(self, RL):
+    def setRL(self, RL: float):
         with open("data/cleanUp.json", "w") as file:
             json.dump(RL, file)
 
@@ -226,7 +236,7 @@ class Set:
 
     # CLEANER FUNCTION
 
-    def newSet(self, setList):
+    def newSet(self, setList: list):
         with open("data/set.json", "r") as f:
             loaded = json.load(f)
 
@@ -262,7 +272,7 @@ class Set:
             with open("data/set.json", "w") as f:
                 json.dump(data, f)
 
-    def extendPreviousSet(self, setList):
+    def extendPreviousSet(self, setList: list):
         with open("data/set.json", "r") as f:
             loaded = json.load(f)
 
@@ -280,7 +290,7 @@ class Set:
         with open("data/set.json", "w") as f:
             json.dump(loaded, f)
 
-    def addLastOutliers(self, outliers, i):
+    def addLastOutliers(self, outliers, i: int):
         l = sorted(outliers).pop()
         if l != (i - 1):
             return 0
@@ -298,7 +308,7 @@ class Set:
 
     # Set Classification
 
-    def makeClassification(self, direction):
+    def makeClassification(self, direction: str):
         with open("data/classification.json", "r") as f:
             loaded = json.load(f)
 
@@ -319,7 +329,7 @@ class Set:
             with open("data/classification.json", "w") as f:
                 json.dump(data, f)
 
-    def setClassification(self, ORL):
+    def setClassification(self, ORL: float) -> str:
         if ORL > 0.00002:
             return "UPWARD"
         elif ORL < -0.00002:
@@ -341,7 +351,7 @@ class Set:
         except IndexError:
             return "Error"
 
-    def polisher(self, classifiction, set, s, end):
+    def polisher(self, classifiction: str, set: list, s: int, end: int) -> int:
         if classifiction == "UPWARD":
             return s + int(set.index(max(set))) + 1
         elif classifiction == "DOWN":
@@ -349,7 +359,7 @@ class Set:
         else:
             return end
 
-    def cleanUp(self):
+    def cleanUp(self) -> list:
         t = True
         CL = self.closeList()
         CLLength = len(CL) - 1
@@ -418,10 +428,12 @@ class Set:
 
 
 class SigValues(Set):
-    def __init__(self, data):
+    """Child class of Set, SigValues makes 3 lists of significant figures"""
+
+    def __init__(self, data: dict):
         super().__init__(data)
 
-    def regressionLine(self, x, y):
+    def regressionLine(self, x: list, y: list) -> list:
         xMean = statistics.mean(x)
         yMean = statistics.mean(y)
 
@@ -436,7 +448,7 @@ class SigValues(Set):
 
         return [slope, intercept]
 
-    def getData(self):
+    def getData(self) -> list:
         with open("data/classification.json", "r") as cla:
             classData = json.load(cla)
 
@@ -445,7 +457,7 @@ class SigValues(Set):
 
         return [classData, setData]
 
-    def sigfigmaker(self):
+    def sigfigmaker(self) -> list:
         d = self.getData()[1]
         c = self.getData()[0]
 
@@ -478,7 +490,6 @@ class SigValues(Set):
 
     def sigfigRegression(self):
         sigfig = self.sigfigmaker()
-
 
         print(self.regressionLine(list(sigfig[0].keys()), list(sigfig[0].values())))
         print(self.regressionLine(list(sigfig[1].keys()), list(sigfig[1].values())))
