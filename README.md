@@ -12,9 +12,9 @@
 
 # Usage
 
-# Major Contributors
+# AIST Developers
 
-## AIST Developers :
+Junhyuk (Andy) Bae - Main developer (080.abae@gmail.com)
 
 # Copyright
 

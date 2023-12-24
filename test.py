@@ -15,7 +15,7 @@ t = True
 
 stock1 = "shop"
 
-data1 = db.Data(stock1)
+data1 = db.Data(stock1, "14d", "15m")
 ST1 = db.Set(data1.findData())
 MVC1 = ST1.minimumValuesChecker()
 

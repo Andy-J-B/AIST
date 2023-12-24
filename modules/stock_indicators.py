@@ -6,8 +6,8 @@ import yfinance as yf
 
 
 class StockIndicator(dm.Data):
-    def __init__(self, stockSymbol, index="TO"):
-        super().__init__(stockSymbol, index)
+    def __init__(self, stockSymbol):
+        super().__init__(stockSymbol)
 
     # VOLUME INDICATOR
 
@@ -350,7 +350,7 @@ class StockIndicator(dm.Data):
     # PRICE FUNCTIONS
 
     def priceListifySMA(self):
-        stock = yf.Ticker(self.stockSymbol + self.index).history(
+        stock = yf.Ticker(self.stockSymbol).history(
             period="2d", interval="2m"
         )
 

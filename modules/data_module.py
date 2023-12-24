@@ -20,12 +20,10 @@ class Data:
         stockSymbol: str,
         period: str = "1d",
         interval: str = "2m",
-        index: str = ".TO",
     ):
         self.stockSymbol = stockSymbol
         self.period = period
         self.interval = interval
-        self.index = index
 
     def mainDataFunction(self):
         folderBoolean = self.folderExists()
@@ -72,7 +70,7 @@ class Data:
     # DATA FUNCTIONS
 
     def findData(self) -> dict:
-        stock = yf.Ticker(self.stockSymbol + self.index).history(
+        stock = yf.Ticker(self.stockSymbol).history(
             period=self.period, interval=self.interval
         )
         return stock
@@ -109,9 +107,6 @@ class Data:
 
         with open(f"stocks/{self.stockSymbol}/{date}.json", "w") as file:
             json.dump(data, file)
-
-
-# IMPORTS
 
 
 # SET CLASS
@@ -425,6 +420,9 @@ class Set:
             print(outlierIndexes, s, i)
 
         return [s, i, outlierIndexes]
+
+
+# SIGVALUES CLASS (CHILD CLASS OF SET CLASS)
 
 
 class SigValues(Set):
