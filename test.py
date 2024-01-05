@@ -5,9 +5,10 @@ import json
 import pandas as pd
 import time
 
+
 import modules.data_module as db
 
-stock = yf.Ticker("SHOP.TO").history(period="20d", interval="1d")
+stock = yf.Ticker("SHOP.TO").history(period="3d", interval="2m")
 
 t = True
 
@@ -15,16 +16,16 @@ t = True
 
 stock1 = "shop"
 
-data1 = db.Data(stock1, "14d", "15m")
+data1 = db.Data(stock1, "3d", "2m")
 ST1 = db.Set(data1.findData())
 MVC1 = ST1.minimumValuesChecker()
 
 if MVC1 == True:
+    print("START CLEAN UP")
     clean = ST1.cleanUp()
     s = clean[0]
     i = clean[1]
     outlierIndexed = clean[2]
-    newS = 0
 
     print("Done Clean Up \n\n")
 
@@ -40,40 +41,50 @@ if MVC1 == True:
                 ORL = json.load(file)
 
             if ORL == 0:
-                NewORL = ST.regressionLine(CL[s:i], outlierIndexes)[0]
+                NewORL = ST.regressionLine(ST.twoValueRL(CL, s, i, outlierIndexes))[0]
                 ST.setRL(NewORL)
 
             else:
-                RL = ST.regressionLine(CL[s:i], outlierIndexes)[0]  # NRL
+                RL = ST.regressionLine(ST.twoValueRL(CL, s, i, outlierIndexes))[
+                    0
+                ]  # NRL
                 PC = ST.regressionLineDifference(RL, ORL)
 
                 if PC == "breakout" or (i - 3) > 9:
-                    if outlierIndexes != False:
-                        newS = ST.addLastOutliers(outlierIndexes, i)
-
                     classification = ST.setClassification(ORL)
-
-                    if int(newS) != 0:
-                        polishedEnd = ST.polisher(classification, CL[s:newS], s, newS)
-                        newS = 0
-
-                    else:
-                        polishedEnd = ST.polisher(classification, CL[s:i], s, i)
+                    polishedEnd = ST.polisher(classification, CL, s, i)
 
                     previousClass = ST.lastClassification()
 
                     if previousClass == classification:
-                        ST.extendPreviousSet(CL[s:polishedEnd])
-                    else:
-                        ST.newSet(CL[s:polishedEnd])
+                        ST.extendPreviousSet(CL, s, polishedEnd)
+                        i = polishedEnd
+                        s = polishedEnd
+                        outlierIndexes = False
+
+                        ST.setRL(0)
+
+                    elif classification == "UPWARD":
+                        newI = ST.findMaxI(i, s, outlierIndexes)
+                        ST.newSet(s, polishedEnd)
                         ST.makeClassification(classification)
 
-                    s = polishedEnd
-                    i = polishedEnd
+                        results = ST.vTheorem(polishedEnd, i)
 
-                    ST.setRL(0)
+                        i = results[0]
+                        s = results[1]
+                        outlierIndexes = results[2]
 
-                    outlierIndexes = False
+                    elif classification == "DOWN":
+                        newI = ST.findMinI(i, s, outlierIndexes)
+                        ST.newSet(s, polishedEnd)
+                        ST.makeClassification(classification)
+
+                        results = ST.vTheorem(polishedEnd, i)
+
+                        i = results[0]
+                        s = results[1]
+                        outlierIndexes = results[2]
 
                 elif PC == "outlier":
                     if outlierIndexes == False:

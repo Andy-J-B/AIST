@@ -174,6 +174,10 @@ class Set:
 
         return dataDict
 
+    def getTime(self):
+        closeVals = self.dataOrganizer()
+        return list(closeVals[0])
+
     def closeList(self) -> dict:
         dataDict = [[], []]
 
@@ -260,11 +264,6 @@ class Set:
             final.append((CL[0][i], CL[1][i]))
         return final
 
-    def getTime(self, start, end):
-        closeVals = self.dataOrganizer()
-
-        return list(closeVals[0][start:end])
-
     def twoValueRL(self, CL, start, end, outliers=False):
         currentCL = self.organizeCL(CL, start, end)
         OLDY = currentCL
@@ -344,15 +343,10 @@ class Set:
             with open("data/set.json", "w") as f:
                 json.dump(data, f)
 
-    def logFile(self, msg):
-        with open("data/log.txt", "r") as f:
-            h = f.read()
-        with open("data/log.txt", "w") as f:
-            f.write(str(h) + "\n" + str(msg))
-        return
-
     def extendPreviousSet(self, Cl: list, start, end):
-        print(start, end)
+        setlist = self.organizeCL(Cl, start, end)
+        timeValues = self.getTime()
+
         with open("data/set.json", "r") as f:
             loaded = json.load(f)
 
@@ -360,12 +354,13 @@ class Set:
 
         sets = loaded[f"set{loadedLength-1}"]
 
-        setlist = self.organizeCL(Cl, start, end)
-        timeValues = self.getTime(start, end)
-
+        i = len(sets)
         print("EXTEND PREVIOUS SET")
-        del sets[list(sets.keys())[-1]]
-        sets[str(timeValues[-1])] = setlist[-1]
+        for set in setlist:
+            print(timeValues[i])
+            sets[str(timeValues[i])] = set
+
+            i += 1
 
         with open("data/set.json", "w") as f:
             json.dump(loaded, f)
@@ -496,11 +491,15 @@ class Set:
                     PC = self.regressionLineDifference(RL, ORL)
 
                     if PC == "breakout" or (i - 3) > 9:
-                        # if outlierIndexes != False:
-                        #     newS = self.addLastOutliers(outlierIndexes, i)
+                        if outlierIndexes != False:
+                            newS = self.addLastOutliers(outlierIndexes, i)
 
                         classification = self.setClassification(ORL)
-                        polishedEnd = self.polisher(classification, CL, s, i)
+                        if int(newS) != 0:
+                            polishedEnd = self.polisher(classification, CL, s, newS)
+                            newS = 0
+                        else:
+                            polishedEnd = self.polisher(classification, CL, s, i)
 
                         previousClass = self.lastClassification()
 
@@ -514,10 +513,10 @@ class Set:
 
                         elif classification == "UPWARD":
                             newI = self.findMaxI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
+                            self.newSet(s, s + newI)
                             self.makeClassification(classification)
 
-                            results = self.vTheorem(polishedEnd, i)
+                            results = self.vTheorem(s + newI, i, outlierIndexes)
 
                             i = results[0]
                             s = results[1]
@@ -525,10 +524,10 @@ class Set:
 
                         elif classification == "DOWN":
                             newI = self.findMinI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
+                            self.newSet(s, s + newI)
                             self.makeClassification(classification)
 
-                            results = self.vTheorem(polishedEnd, i)
+                            results = self.vTheorem(s + newI, i, outlierIndexes)
 
                             i = results[0]
                             s = results[1]
@@ -543,6 +542,7 @@ class Set:
 
             i += 1
             print(outlierIndexes, s, i)
+        print([i, s, outlierIndexes])
         return [i, s, outlierIndexes]
 
     def cleanUp(self) -> list:
@@ -574,11 +574,15 @@ class Set:
                     PC = self.regressionLineDifference(RL, ORL)
 
                     if PC == "breakout" or (i - 3) > 9:
-                        # if outlierIndexes != False:
-                        #     newS = self.addLastOutliers(outlierIndexes, i)
+                        if outlierIndexes != False:
+                            newS = self.addLastOutliers(outlierIndexes, i)
 
                         classification = self.setClassification(ORL)
-                        polishedEnd = self.polisher(classification, CL, s, i)
+                        if int(newS) != 0:
+                            polishedEnd = self.polisher(classification, CL, s, newS)
+                            newS = 0
+                        else:
+                            polishedEnd = self.polisher(classification, CL, s, i)
 
                         previousClass = self.lastClassification()
 
@@ -592,10 +596,10 @@ class Set:
 
                         elif classification == "UPWARD":
                             newI = self.findMaxI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
+                            self.newSet(s, s + newI)
                             self.makeClassification(classification)
 
-                            results = self.vTheorem(polishedEnd, i)
+                            results = self.vTheorem(s + newI, i, outlierIndexes)
 
                             i = results[0]
                             s = results[1]
@@ -603,10 +607,10 @@ class Set:
 
                         elif classification == "DOWN":
                             newI = self.findMinI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
+                            self.newSet(s, s + newI)
                             self.makeClassification(classification)
 
-                            results = self.vTheorem(polishedEnd, i)
+                            results = self.vTheorem(s + newI, i, outlierIndexes)
 
                             i = results[0]
                             s = results[1]

@@ -1,0 +1,245 @@
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+
+class RegressionLine:
+    def __init__(self, x_values, y_values):
+        self.x_values = x_values
+        self.y_values = y_values
+
+
+class ConsolidationAnalyzer:
+    def __init__(self):
+        self.regression_lines = []
+        self.upper_regression_lines = []
+        self.lower_regression_lines = []
+        self.marked_point = None
+        self.danger_threshold = 6.0
+
+    def establish_regression_line(self, x_values, y_values):
+        if x_values < 3 or y_values < 3:
+            return
+
+        x_array = np.array(x_values).reshape(-1, 1)
+        y_array = np.array(y_values)
+
+        x_array = x_array.reshape(-1, 1)
+        y_array = y_array.reshape(-1, 1)
+
+        # Fit linear regression model
+        model = LinearRegression()
+        model.fit(x_array, y_array)
+
+        # Calculate residuals
+        residuals = y_array - model.predict(x_array)
+
+        # Check if residuals are within 0.10% (0.001) interval
+        residuals = [residuals] if isinstance(residuals, (int, float)) else residuals
+        y_values = [y_values] if isinstance(y_values, (int, float)) else y_values
+
+        if all(
+            abs(residual) / abs(y) <= 0.001 for residual, y in zip(residuals, y_values)
+        ):
+            # If within interval, create a regression line
+            regression_line = RegressionLine(x_values, y_values)
+            self.regression_lines.append(regression_line)
+            # Initialize empty lists to store x and y values for the regression line
+            x_regression = []
+            y_regression = []
+
+            for i in range(x_values, x_values + 1):
+                if (
+                    abs(self.marked_point[1] - model.predict([[i]]))
+                    / abs(self.marked_point[1])
+                    <= 0.01
+                ):
+                    x_regression.append(i)
+                    y_regression.append(self.marked_point[1])
+
+            # Now, x_regression and y_regression contain the values that meet the condition
+            regression_line.x_values = x_regression
+            regression_line.y_values = y_regression
+
+        return regression_line
+
+    def advanced_regression_line_building(self, x_values, y_values):
+        if x_values < 2 or y_values < 2:
+            return
+
+        x_array = np.array(x_values).reshape(-1, 1)
+        y_array = np.array(y_values)
+
+        # Calculate special values (Y_array may be wrong -Petar)
+        special_values = y_array - 0.1
+
+        for x, special_value in [(x_values, special_values)]:
+            for line in self.regression_lines:
+                # Check if the value and special value are within 0.10% of each other
+                if (
+                    abs(line.y_values[-1] - y) / abs(y) <= 0.001
+                    and abs(line.y_values[-1] - special_value) / abs(special_value)
+                    <= 0.001
+                ):
+                    # Create a new regression line for each value and special value pair
+                    new_regression_line = RegressionLine([x], [y, special_value])
+                    self.regression_lines.append(new_regression_line)
+
+                    # Break to avoid adding the same point to multiple lines
+                    break
+
+    def zone_change_analysis(self):
+        if not self.marked_point or not self.regression_lines:
+            return
+
+        marked_x, marked_y = self.marked_point
+
+        # Basic Categorization
+        lower_lines = [
+            line for line in self.regression_lines if line.y_values[-1] < marked_y
+        ]
+        upper_lines = [
+            line for line in self.regression_lines if line.y_values[-1] > marked_y
+        ]
+
+        # Identify main upper and main lower
+        main_upper = max(upper_lines, key=lambda line: line.y_values[-1], default=None)
+        main_lower = min(lower_lines, key=lambda line: line.y_values[-1], default=None)
+
+        if main_upper and main_lower:
+            # Changing Regression Line Types
+            if len([line for line in upper_lines if line.y_values[-1] > marked_y]) == 3:
+                # main upper becomes main lower
+                self.main_upper = None
+                self.main_lower = main_upper
+            elif (
+                len([line for line in lower_lines if line.y_values[-1] < marked_y]) == 3
+            ):
+                # main lower becomes main upper
+                self.main_lower = None
+                self.main_upper = main_lower
+
+    def outlier_analysis(self, x1, x2, x3):
+        if not x1 or not x2 or not x3:
+            return
+
+        earliest = min(x1, x2)
+        latest = max(x1, x2)
+
+        # Check if x3 is within an 0.75% interval of x1 and x2 and is between x1 and x2
+        if (latest - earliest) * 0.0075 >= abs(x3 - x1) <= abs(
+            x2 - x1
+        ) and earliest <= x3 <= latest:
+            # Check if x3 is not part of any other regression line
+            if not any(line.x_values.count(x3) > 0 for line in self.regression_lines):
+                # Check if no other value exists at the original x3 within a 0.15% amount
+                if all(
+                    abs(line.y_values[-1] - x3) / abs(x3) > 0.0015
+                    for line in self.regression_lines
+                ):
+                    # Calculate the average of x1 and x2 prices and establish a regression line
+                    average_price = (x1 + x2) / 2
+                    regression_line = RegressionLine(
+                        [earliest, latest, x3], [x1, x2, average_price]
+                    )
+                    self.regression_lines.append(regression_line)
+                    lineNew = 0
+                    # Remove x3 from the x1 and x2 regression line if it can be part of a horizontal regression line
+                    for line in self.regression_lines:
+                        lineNew = line
+                        if line != regression_line and all(
+                            abs(line.y_values[-1] - x3) / abs(x3) <= 0.001
+                            for line in self.regression_lines
+                        ):
+                            if x3 in lineNew.x_values:
+                                lineNew.x_values.remove(x3)
+                                lineNew.y_values.remove(x3)
+
+    def difference_analytics(self, b1, b2, a1, a2):
+        # Implementation of Difference Analytics
+        if b1 == b2 and a1 > a2 * 1.006 and a1 < a2 * 1.025:
+            print("DANGER")
+        else:
+            print("SAFE")
+
+    def case_analytics(self):
+        if not self.marked_point:
+            return
+
+        marked_x, marked_y = self.marked_point
+
+        # Check if a main lower regression line is established
+        main_lower = min(
+            self.lower_regression_lines,
+            key=lambda line: line.y_values[-1],
+            default=None,
+        )
+        if (
+            main_lower
+            and marked_y <= main_lower.y_values[-1]
+            and len(self.marked_point) >= 10
+        ):
+            # Check if the value has fallen in the last 10-time intervals by 0.20% or more
+            if (main_lower.y_values[-1] - marked_y) / marked_y >= 0.002:
+                # Check if the price is within 0.10% or less of a regression line
+                if all(
+                    abs(line.y_values[-1] - marked_y) / marked_y <= 0.001
+                    for line in self.regression_lines
+                ):
+                    # Check if the price is within 0.10% or less of a lower regression line
+                    if all(
+                        abs(line.y_values[-1] - marked_y) / marked_y <= 0.001
+                        for line in self.lower_regression_lines
+                    ):
+                        # Difference Analysis is not DANGER
+                        if not self.difference_analysis_danger():
+                            # Mark point as CASE 2
+                            print("Mark point as CASE 2")
+
+        # Check if a main upper regression line is established
+        main_upper = max(
+            self.upper_regression_lines,
+            key=lambda line: line.y_values[-1],
+            default=None,
+        )
+        if (
+            main_upper
+            and marked_y >= main_upper.y_values[-1]
+            and len(self.marked_point) >= 10
+        ):
+            # Check if the value has risen by 0.20% or more since CASE 2
+            if (marked_y - main_lower.y_values[-1]) / main_lower.y_values[-1] >= 0.002:
+                # Check if the current price is within 0.10% or less of the main upper regression line
+                if abs(marked_y - main_upper.y_values[-1]) / marked_y <= 0.001:
+                    # Check if the value reverts downward by 0.40% or more
+                    if (main_upper.y_values[-1] - marked_y) / marked_y >= 0.004:
+                        # Mark point as CASE 3
+                        print("Mark point as CASE 3")
+
+    def process_potential_number(self, x, y):
+        # Update the marked point
+        self.marked_point = (x, y)
+
+        # Check for consolidation levels and regression lines
+        self.establish_regression_line(x, y)
+        self.advanced_regression_line_building(x, y)
+        self.zone_change_analysis()
+
+        # Assuming x1, x2, and x3 are defined somewhere in your code
+        x1, x2, x3 = 1, 2, 3
+        self.outlier_analysis(x1, x2, x3)
+
+        # Assuming b1, b2, a1, and a2 are defined somewhere in your code
+        b1, b2, a1, a2 = 1, 2, 3, 4
+        self.difference_analytics(b1, b2, a1, a2)
+
+        self.case_analytics()
+
+
+# Example usage
+analyzer = ConsolidationAnalyzer()
+
+# Assuming potential numbers are provided as (x, y) pairs
+potential_numbers = [(1, 10), (2, 15), (3, 11), (4, 10.5), (5, 14), (6, 9)]
+
+for x, y in potential_numbers:
+    analyzer.process_potential_number(x, y)
