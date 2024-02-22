@@ -1,191 +1,67 @@
-# *** IMPORTS ***
-
-import json, shutil, statistics, os
-import yfinance as yf
-from datetime import datetime
-
-
-# *** CLASSES ***
-
-
-# DATA CLASS
-
-
-class Data:
-    """Data class to Read, Edit and Remove Data"""
-
-    # INITIATE VARIABLES
-    def __init__(
-        self,
-        stockSymbol: str,
-        period: str = "1d",
-        interval: str = "2m",
-    ):
-        self.stockSymbol = stockSymbol
-        self.period = period
-        self.interval = interval
-
-    def mainDataFunction(self):
-        folderBoolean = self.folderExists()
-        fileBoolean = self.fileExists()
-
-        if folderBoolean == True:
-            if fileBoolean == True:
-                self.editData()
-            elif fileBoolean == False:
-                self.makeFile()
-                self.addData()
-        elif folderBoolean == False:
-            self.makeFolder()
-            self.makeFile()
-            self.addData()
-
-    # FOLDER FUNCTIONS
-
-    def makeFolder(self):
-        os.mkdir(f"stocks/{self.stockSymbol}")
-
-    def folderExists(self) -> bool:
-        folderBoolean = os.path.exists(f"stocks/{self.stockSymbol}")
-
-        return folderBoolean
-
-    def deleteFolder(self):
-        if os.path.exists(f"stocks/{self.stockSymbol}"):
-            shutil.rmtree(f"stocks/{self.stockSymbol}")
-
-    # FILE FUNCTIONS
-
-    def makeFile(self):
-        date = datetime.today().strftime("%Y-%m-%d")
-        newFile = open(f"stocks/{self.stockSymbol}/{date}.json", "x")
-        newFile.close()
-
-    def fileExists(self) -> bool:
-        date = datetime.today().strftime("%Y-%m-%d")
-        fileBoolean = os.path.exists(f"stocks/{self.stockSymbol}/{date}.json")
-
-        return fileBoolean
-
-    # DATA FUNCTIONS
-
-    def findData(self) -> dict:
-        stock = yf.Ticker(self.stockSymbol).history(
-            period=self.period, interval=self.interval
-        )
-        return stock
-
-    def addData(self):
-        date = datetime.today().strftime("%Y-%m-%d")
-        data = self.makeData()
-
-        with open(f"stocks/{self.stockSymbol}/{date}.json", "w") as file:
-            json.dump(data, file)
-
-    def makeData(self) -> dict:
-        data = self.findData()
-
-        dataDict = {}
-
-        for i in range(len(data)):
-            prices = {}
-            prices["Open"] = data["Open"][i]
-            prices["Close"] = data["Close"][i]
-            prices["High"] = data["High"][i]
-            prices["Low"] = data["Low"][i]
-            prices["Volume"] = int(data["Volume"][i])
-
-            dataDict[f"{i}"] = prices
-
-        return dataDict
-
-    def editData(self):
-        date = datetime.today().strftime("%Y-%m-%d")
-        data = self.makeData()
-
-        open(f"stocks/{self.stockSymbol}/{date}.json", "w").close()
-
-        with open(f"stocks/{self.stockSymbol}/{date}.json", "w") as file:
-            json.dump(data, file)
-
+# Set Module
+#
+# set.py
 
 # SET CLASS
 
+# This file contains the set class
+# Which is used for recieving data and forming it into a set
 
+
+# Data should be formatted as :
+# { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
+
+# ***    Main Code    ***
+
+# *** Imports
+import json, statistics
+import pandas as pd
+
+
+# *** Classes
 class Set:
+    """Class that makes sets"""
 
-    """Class that runs algorithms on sets, makes, polishes and classifies sets"""
-
-    def __init__(self, data: dict):
-        self.data = data
+    def __init__(self, csv: str, dataType: dict):
+        self.csv = csv
+        self.dataType = dataType
+        self.data = self.dataFinder()
         # data organized as [[time][open][close]]
         self.dataOrganized = self.dataOrganizer()
 
-    # CHECKER FUNCTIONS
+    # DATA FUNCTIONS
+
+    def dataFinder(self) -> list:
+        csvLocation = self.csv
+
+        with open(f"{csvLocation}.csv", "r") as file:
+            listOfLines = file.read().splitlines()
+            pass
+
+        return listOfLines
 
     def dataOrganizer(self) -> list:
         """
         Organizes the data given to the class.
-        Data recieved : { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
+        Data recieved : []"open,close,time", "open,close,time"]
         Data exported : [ [ <time>, <time> ] [ <open>, <open> ], [ <close>, <close> ] ]
         """
 
         data = self.data
 
-        dataDict = {}
-        Date = data.index.get_level_values("Datetime")
-        # print(str(Date[0]))
-        for i in range(len(data)):
-            dataDict[str(Date[i])] = (data["Open"][i], data["Close"][i])
-
         dataOrganized = [[], [], []]
-        for keys, values in dataDict.items():
+        for lines in data:
+            words = lines.split(",")
             try:
-                dataOrganized[0].append(keys)
-                dataOrganized[1].append(values[0])
-                dataOrganized[2].append(values[1])
+                dataOrganized[0].append(words[2])
+                dataOrganized[1].append(float(words[0]))
+                dataOrganized[2].append(float(words[1]))
             except TypeError:
-                dataOrganized[0].append(keys)
-                dataOrganized[1].append(values)
-                dataOrganized[2].append(values)
+                dataOrganized[0].append(words[1])
+                dataOrganized[1].append(float(words[0]))
+                dataOrganized[2].append(float(words[0]))
 
         return dataOrganized
-
-    def minimumValuesChecker(self):
-        closeValues = len(self.closeValues())
-
-        if closeValues > 4:
-            return True
-        elif closeValues < 4:
-            return False
-        elif closeValues == 4:
-            return "equal"
-
-    # VALUES FUNCTIONS
-
-    def closeValues(self) -> dict:
-        dataDict = {}
-
-        for i in range(len(self.data)):
-            try:
-                dataDict[f"{i}"] = (self.data["Open"][i], self.data["Close"][i])
-            except TypeError:
-                dataDict[f"{i}"] = (self.data["Open"][i], self.data["Open"][i])
-
-        return dataDict
-
-    def closeList(self) -> dict:
-        dataDict = [[], []]
-
-        for i in range(len(self.data)):
-            try:
-                dataDict[0].append(self.data["Open"][i])
-                dataDict[1].append(self.data["Close"][i])
-            except TypeError:
-                dataDict[0].append(self.data["Open"][i])
-                dataDict[1].append(self.data["Open"][i])
-
-        return dataDict
 
     # REGRESSION LINE FUNCTIONS
 
@@ -198,10 +74,18 @@ class Set:
     def addList(self, a: list, b: list) -> list:
         return a + b
 
-    def regressionLine(self, twoValues) -> list:
+    def regressionLine(self, y: list, time: list, outlier=False) -> list:
         # print("RegressionLine - > ", y, time)
-        x = twoValues[0]
-        y = twoValues[1]
+        x = self.numberlistRL(len(time), outlier)
+        OLDY = y
+
+        if outlier != False:
+            newOutlier = reversed(
+                list(map(self.subList, outlier, [1] * int(len(outlier))))
+            )
+
+            for outliers in newOutlier:
+                y.remove(OLDY[outliers - 1])
 
         xMean = statistics.mean(x)
         yMean = statistics.mean(y)
@@ -224,8 +108,14 @@ class Set:
         else:
             slope = sum(sxy) / sum(sxx)
 
+        # try:
+        #     slope = sum(sxy) / sum(sxx)
+        # except RuntimeWarning:
+        #     print(sxy, sxx)
+        # except ZeroDivisionError:
+        #     slope = 0
         intercept = yMean - slope * xMean
-
+        print([slope])
         return [slope, intercept]
 
     def numberlistRL(self, number: int, exempt=False) -> list:
@@ -244,87 +134,37 @@ class Set:
     def regressionLineDifference(self, NRL: float, ORL: float):
         PC = (abs((NRL - ORL)) / ORL) * 100.0
 
-        print(NRL, ORL, PC)
-
-        if 50 < abs(PC) < 100:
-            return "outlier"
-        elif abs(PC) >= 100:
-            return "breakout"
-        else:
+        if 400 < abs(PC):
             return True
+        else:
+            False
 
-    def organizeCL(self, CL, start, end):
-        # [[],[]] to [(),()]
-        final = []
-        for i in range(start, end):
-            final.append((CL[0][i], CL[1][i]))
-        return final
-
-    def getTime(self, start, end):
-        closeVals = self.dataOrganizer()
-
-        return list(closeVals[0][start:end])
-
-    def twoValueRL(self, CL, start, end, outliers=False):
-        currentCL = self.organizeCL(CL, start, end)
-        OLDY = currentCL
-
-        numberlist = []
-        for numbers in range(int(len(currentCL))):
-            numberlist.append(numbers)
-
-        if outliers != False:
-            for outlier in outliers:
-                numberlist.remove(outlier)
-        final = list(map(self.addList, numberlist, [1] * int(len(numberlist))))
-
-        if outliers != False:
-            newOutlier = reversed(outliers)
-
-            for outly in newOutlier:
-                currentCL.remove(OLDY[outly])
-
-        y_values = ()
-        for interval in currentCL:
-            if type(interval) == int:
-                y_values += (interval, interval)
-            else:
-                y_values += interval
-
-        return [final, list(y_values)]
-
-    def setFirstORL(self, s, e):
-        CL = self.closeList()
-        RL = self.regressionLine(self.twoValueRL(CL, s, e))[0]
-        with open("data/cleanUp.json", "w") as file:
-            json.dump(RL, file)
-
-    def setRL(self, RL: float):
-        with open("data/cleanUp.json", "w") as file:
-            json.dump(RL, file)
-
-    # RESET FUNCTION
-
-    def reset(self):
-        with open("data/classification.json", "w") as file:
-            pass
-        with open("data/set.json", "w") as f:
-            pass
+    def intervalDirection(self, open: float, close: float) -> str:
+        if float(open) > float(close):
+            return "DOWNWARD"
+        elif float(close) > float(open):
+            return "UPWARD"
 
     # CLEANER FUNCTION
 
-    def newSet(self, start, end):
-        intervals = self.dataOrganized
-
+    def newSet(self, intervals: list, special: bool = False):
         with open("data/set.json", "r") as f:
             loaded = json.load(f)
+
+        # print("new Set->", intervals, special)
 
         if str(loaded) != "{}":
             loadedLength = len(loaded)
 
             sets = {}
-            sets[str(intervals[0][start])] = (intervals[1][start], intervals[2][start])
-            sets[str(intervals[0][end])] = (intervals[1][end], intervals[2][end])
+
+            # { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
+            sets[str(intervals[0][0])] = (intervals[1][0], intervals[2][0])
+            if special:
+                pass
+            else:
+                sets[str(intervals[0][-1])] = (intervals[1][-1], intervals[2][-1])
+
             data = loaded
 
             data["set" + str(loadedLength)] = sets
@@ -332,10 +172,14 @@ class Set:
             with open("data/set.json", "w") as f:
                 json.dump(data, f)
         else:
-            print("n")
             sets = {}
-            sets[str(intervals[0][start])] = (intervals[1][start], intervals[2][start])
-            sets[str(intervals[0][end])] = (intervals[1][end], intervals[2][end])
+
+            # { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
+            sets[str(intervals[0][0])] = (intervals[1][0], intervals[2][0])
+            if special:
+                pass
+            else:
+                sets[str(intervals[0][-1])] = (intervals[1][-1], intervals[2][-1])
 
             data = {}
 
@@ -344,354 +188,158 @@ class Set:
             with open("data/set.json", "w") as f:
                 json.dump(data, f)
 
-    def logFile(self, msg):
-        with open("data/log.txt", "r") as f:
-            h = f.read()
-        with open("data/log.txt", "w") as f:
-            f.write(str(h) + "\n" + str(msg))
-        return
-
-    def extendPreviousSet(self, Cl: list, start, end):
-        print(start, end)
-        with open("data/set.json", "r") as f:
-            loaded = json.load(f)
-
-        loadedLength = len(loaded)
-
-        sets = loaded[f"set{loadedLength-1}"]
-
-        setlist = self.organizeCL(Cl, start, end)
-        timeValues = self.getTime(start, end)
-
-        print("EXTEND PREVIOUS SET")
-        del sets[list(sets.keys())[-1]]
-        sets[str(timeValues[-1])] = setlist[-1]
-
-        with open("data/set.json", "w") as f:
-            json.dump(loaded, f)
-
-    def addLastOutliers(self, outliers, i: int):
-        l = sorted(outliers).pop()
-        if l != (i - 1):
-            return 0
-
-        newOutliers = []
-
-        for integer in outliers:
-            if l in outliers:
-                newOutliers.append(l)
-            else:
-                break
-            l += -1
-
-        return newOutliers[0]
-
-    # Set Classification
-
-    def makeClassification(self, direction: str):
-        with open("data/classification.json", "r") as f:
-            loaded = json.load(f)
-
-        if str(loaded) != "{}":
-            loadedLength = len(loaded)
-
-            data = loaded
-
-            data["set" + str(loadedLength)] = direction
-
-            with open("data/classification.json", "w") as f:
-                json.dump(data, f)
-        else:
-            data = {}
-
-            data["set" + str(0)] = direction
-
-            with open("data/classification.json", "w") as f:
-                json.dump(data, f)
-
-    def setClassification(self, ORL: float) -> str:
-        if ORL > 0.00002:
+    def oppositeDirection(self, previousDirection):
+        if previousDirection == "UPWARD":
+            return "DOWNWARD"
+        elif previousDirection == "DOWNWARD":
             return "UPWARD"
-        elif ORL < -0.00002:
-            return "DOWN"
+
+    def checkBreakoutRule1(self, direction, currentInterval, firstInterval):
+        if direction == "UPWARD":
+            if currentInterval < firstInterval - firstInterval * 0.5:
+                return True
+        if direction == "DOWNWARD":
+            if currentInterval > firstInterval + firstInterval * 0.5:
+                return True
+        return False
+
+    def checkBreakout(self, NRL, ORL):
+        PC = (abs((NRL - ORL)) / ORL) * 100.0
+        if PC > 200:
+            return True
         else:
-            return "LATERAL"
+            return False
 
-    def lastClassification(self):
-        with open("data/classification.json", "r") as f:
-            classificationDict = json.load(f)
+    def checkBreakoutRule2(self, newRegressionLine):
+        with open("data/regressionLine.json", "r") as f:
+            oldRegressionLine = json.load(f)
+        return self.regressionLineDifference(newRegressionLine, oldRegressionLine)
 
-        print(classificationDict)
-        clist = []
-        for values in classificationDict.values():
-            clist.append(values)
+    def addNewRegressionLine(self, newRegressionLine):
+        with open("data/regressionLine.json", "w") as file:
+            json.dump(newRegressionLine, file)
 
-        try:
-            return clist[-1]
-        except IndexError:
-            return "Error"
+    def cleanUp(self, data: list = False) -> list:
+        """
+        This function is used when you first start this program or if you reset it.
+        It does whatever the main code runs but on the data of the last three days to organize the data and sets.
+        """
 
-    def polisher(self, classifiction: str, set: list, s: int, end: int) -> int:
-        currentCL = self.organizeCL(set, s, end)
-        finalCL = []
-        for i in range(len(currentCL)):
-            finalCL.append(max(currentCL[i]))
-        if classifiction == "UPWARD":
-            return s + int(finalCL.index(max(finalCL))) + 1
-        elif classifiction == "DOWN":
-            return s + int(finalCL.index(min(finalCL))) + 1
-        else:
-            return end
-
-    def findMaxI(self, i, s, outlierIndexes):
-        Cl = self.closeList()[1][s:i]
-        ClCopy = Cl
-        if outlierIndexes == False:
+        # Set variables
+        if data != False:
             pass
         else:
-            for i in reversed(range(i)):
-                if i in outlierIndexes:
-                    del ClCopy[i]
-        # print(ClCopy, Cl[Cl.index(max(ClCopy))], Cl.index(max(ClCopy)))
+            data = self.dataOrganized
 
-        return Cl.index(max(ClCopy))
+        outliers = [[], [], []]
+        intervals = [[], [], []]
+        specialClassChecker = 0
+        direction = None
 
-    def findMinI(self, i, s, outlierIndexes):
-        Cl = self.closeList()[1][s:i]
-        ClCopy = Cl
-        if outlierIndexes == False:
-            pass
-        else:
-            for i in reversed(range(i)):
-                if i in outlierIndexes:
-                    del ClCopy[i]
-        # print(ClCopy, Cl[Cl.index(min(ClCopy))], Cl.index(min(ClCopy)))
-        # 1 / 0
+        # Start for loop to find all the sets
+        for interval in range(len(data[0])):
+            # If it's the first interval of a set
+            if len(intervals[0]) < 3:
+                print("0 Interval -> restart")
+                # Find the direction of the first interval
+                direction = self.intervalDirection(data[1][interval], data[2][interval])
+                # Add the intervals to the intervals list
+                intervals[0].append(data[0][interval])
+                intervals[1].append(data[1][interval])
+                intervals[2].append(data[2][interval])
+                print(intervals)
+                self.addNewRegressionLine(
+                    self.regressionLine(intervals[1] + intervals[2], intervals[0])[0]
+                )
+                print("REGRESSION LINE")
+                print(self.regressionLine(intervals[1] + intervals[2], intervals[0])[0])
 
-        return Cl.index(min(ClCopy))
+                continue
 
-    def vTheorem(self, s, e, outlierIndexes=False) -> list:
-        print("STARTING V-THEOREM")
-        CL = self.closeList()
-        i = s
-        newS = 0
+            newIntervalDirection = self.intervalDirection(
+                data[1][interval], data[2][interval]
+            )
 
-        self.setFirstORL(s, s + 4)
+            if newIntervalDirection != direction:
+                outliers[0].append(data[0][interval])
+                outliers[1].append(data[1][interval])
+                outliers[2].append(data[2][interval])
+                specialClassChecker += 1
 
-        while i < e:
-            if (i - s) > 3:
-                with open("data/cleanUp.json", "r") as file:
-                    ORL = json.load(file)
+            # Add the new intervals to the intervals list
+            else:
+                intervals[0].append(data[0][interval])
+                intervals[1].append(data[1][interval])
+                intervals[2].append(data[2][interval])
+                specialClassChecker = 0
 
-                if ORL == 0:
-                    NewORL = self.regressionLine(
-                        self.twoValueRL(CL, s, i, outlierIndexes)
-                    )[0]
-                    self.setRL(NewORL)
+                # Add the new regression line to the file
+                newRegressionLine = self.regressionLine(
+                    intervals[1] + intervals[2], intervals[0]
+                )[0]
 
-                else:
-                    RL = self.regressionLine(self.twoValueRL(CL, s, i, outlierIndexes))[
-                        0
-                    ]  # NRL
-                    PC = self.regressionLineDifference(RL, ORL)
+            if len(intervals[0][0]) > 2:
+                with open("data/regressionLine.json", "r") as f:
+                    oldRegressionLine = json.load(f)
+                print(oldRegressionLine, newRegressionLine)
+                if self.checkBreakout(newRegressionLine, oldRegressionLine):
+                    if direction == "UPWARD":
+                        # Get index of the max close value
+                        indexOfMax = intervals[2].index(max(intervals[2]))
 
-                    if PC == "breakout" or (i - 3) > 9:
-                        # if outlierIndexes != False:
-                        #     newS = self.addLastOutliers(outlierIndexes, i)
+                        print("A")
 
-                        classification = self.setClassification(ORL)
-                        polishedEnd = self.polisher(classification, CL, s, i)
+                        # Make and add the new set
 
-                        previousClass = self.lastClassification()
+                        self.newSet(
+                            [
+                                intervals[0][0 : indexOfMax + 1],
+                                intervals[1][0 : indexOfMax + 1],
+                                intervals[2][0 : indexOfMax + 1],
+                            ]
+                        )
 
-                        if previousClass == classification:
-                            self.extendPreviousSet(CL, s, polishedEnd)
-                            i = polishedEnd
-                            s = polishedEnd
-                            outlierIndexes = False
+                        # run algorithm on the set that remains
+                        newRemainingSet = [
+                            intervals[0][indexOfMax + 1 :],
+                            intervals[1][indexOfMax + 1 :],
+                            intervals[2][indexOfMax + 1 :],
+                        ]
 
-                            self.setRL(0)
+                        newSetInformation = self.cleanUp(newRemainingSet)
 
-                        elif classification == "UPWARD":
-                            newI = self.findMaxI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
-                            self.makeClassification(classification)
+                    elif direction == "DOWNWARD":
+                        # Get index of the max close value
+                        indexOfMin = intervals[2].index(min(intervals[2]))
 
-                            results = self.vTheorem(polishedEnd, i)
+                        print("B")
 
-                            i = results[0]
-                            s = results[1]
-                            outlierIndexes = results[2]
+                        # Make and add the new set
+                        self.newSet(
+                            [
+                                intervals[0][0 : indexOfMin + 1],
+                                intervals[1][0 : indexOfMin + 1],
+                                intervals[2][0 : indexOfMin + 1],
+                            ]
+                        )
 
-                        elif classification == "DOWN":
-                            newI = self.findMinI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
-                            self.makeClassification(classification)
+                        # run algorithm on the set that remains
+                        newRemainingSet = [
+                            intervals[0][indexOfMin + 1 :],
+                            intervals[1][indexOfMin + 1 :],
+                            intervals[2][indexOfMin + 1 :],
+                        ]
 
-                            results = self.vTheorem(polishedEnd, i)
+                        print("Start V-Alg")
+                        newSetInformation = self.cleanUp(newRemainingSet)
 
-                            i = results[0]
-                            s = results[1]
-                            outlierIndexes = results[2]
+                    outliers = newSetInformation[0]
+                    intervals = newSetInformation[1]
+                    specialClassChecker = newSetInformation[2]
+                    direction = newSetInformation[3]
+                    # Set RegressionLine in self.V_Algorithm
+                    continue
 
-                    elif PC == "outlier":
-                        if outlierIndexes == False:
-                            outlierIndexes = []
-                        outlierIndexes.append(i - s)
-                    else:
-                        self.setRL(RL)
+            self.addNewRegressionLine(newRegressionLine)
 
-            i += 1
-            print(outlierIndexes, s, i)
-        return [i, s, outlierIndexes]
-
-    def cleanUp(self) -> list:
-        CL = self.closeList()
-        CLLength = len(CL[0]) - 1
-        i = 5
-        s = 0
-        outlierIndexes = False
-
-        newS = 0
-
-        self.setFirstORL(0, 4)
-
-        while i < CLLength:
-            if (i - s) > 3:
-                with open("data/cleanUp.json", "r") as file:
-                    ORL = json.load(file)
-
-                if ORL == 0:
-                    NewORL = self.regressionLine(
-                        self.twoValueRL(CL, s, i, outlierIndexes)
-                    )[0]
-                    self.setRL(NewORL)
-
-                else:
-                    RL = self.regressionLine(self.twoValueRL(CL, s, i, outlierIndexes))[
-                        0
-                    ]  # NRL
-                    PC = self.regressionLineDifference(RL, ORL)
-
-                    if PC == "breakout" or (i - 3) > 9:
-                        # if outlierIndexes != False:
-                        #     newS = self.addLastOutliers(outlierIndexes, i)
-
-                        classification = self.setClassification(ORL)
-                        polishedEnd = self.polisher(classification, CL, s, i)
-
-                        previousClass = self.lastClassification()
-
-                        if previousClass == classification:
-                            self.extendPreviousSet(CL, s, polishedEnd)
-                            i = polishedEnd
-                            s = polishedEnd
-                            outlierIndexes = False
-
-                            self.setRL(0)
-
-                        elif classification == "UPWARD":
-                            newI = self.findMaxI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
-                            self.makeClassification(classification)
-
-                            results = self.vTheorem(polishedEnd, i)
-
-                            i = results[0]
-                            s = results[1]
-                            outlierIndexes = results[2]
-
-                        elif classification == "DOWN":
-                            newI = self.findMinI(i, s, outlierIndexes)
-                            self.newSet(s, polishedEnd)
-                            self.makeClassification(classification)
-
-                            results = self.vTheorem(polishedEnd, i)
-
-                            i = results[0]
-                            s = results[1]
-                            outlierIndexes = results[2]
-
-                    elif PC == "outlier":
-                        if outlierIndexes == False:
-                            outlierIndexes = []
-                        outlierIndexes.append(i - s)
-                    else:
-                        self.setRL(RL)
-
-            i += 1
-            print(outlierIndexes, s, i)
-
-        return [s, i, outlierIndexes]
-
-
-# SIGVALUES CLASS (CHILD CLASS OF SET CLASS)
-
-
-class SigValues(Set):
-    """Child class of Set, SigValues makes 3 lists of significant figures"""
-
-    def __init__(self, data: dict):
-        super().__init__(data)
-
-    def regressionLine(self, x: list, y: list) -> list:
-        xMean = statistics.mean(x)
-        yMean = statistics.mean(y)
-
-        xSubMean = list(map(self.subList, x, [xMean] * int(len(x))))
-        ySubMean = list(map(self.subList, y, [yMean] * int(len(y))))
-
-        sxy = list(map(self.productList, ySubMean, xSubMean))
-        sxx = list(map(self.productList, xSubMean, xSubMean))
-
-        slope = sum(sxy) / sum(sxx)
-        intercept = yMean - slope * xMean
-
-        return [slope, intercept]
-
-    def getData(self) -> list:
-        with open("data/classification.json", "r") as cla:
-            classData = json.load(cla)
-
-        with open("data/set.json", "r") as se:
-            setData = json.load(se)
-
-        return [classData, setData]
-
-    def sigfigmaker(self) -> list:
-        d = self.getData()[1]
-        c = self.getData()[0]
-
-        i = 0
-
-        sigfigs = {}
-        sigfiglow = {}
-        sigfighigh = {}
-        s = 0
-
-        for sets in d:
-            for keys, values in d[sets].items():
-                if keys == "0":
-                    sigfigs[i] = values
-                    if c[f"set{s}"] == "UPWARD":
-                        sigfiglow[i] = values
-                    if c[f"set{s}"] == "DOWN":
-                        sigfighigh[i] = values
-                elif keys == f"{len(sets)-1}":
-                    sigfigs[i] = values
-                    if c[f"set{s}"] == "DOWN":
-                        sigfiglow[i] = values
-                    if c[f"set{s}"] == "UPWARD":
-                        sigfighigh[i] = values
-
-                i += 1
-            s += 1
-
-        return [sigfigs, sigfiglow, sigfighigh]
-
-    def sigfigRegression(self):
-        sigfig = self.sigfigmaker()
-
-        print(self.regressionLine(list(sigfig[0].keys()), list(sigfig[0].values())))
-        print(self.regressionLine(list(sigfig[1].keys()), list(sigfig[1].values())))
-        print(self.regressionLine(list(sigfig[2].keys()), list(sigfig[2].values())))
+        return [outliers, intervals, specialClassChecker, direction]

@@ -15,17 +15,54 @@
 
 # *** Imports
 import json, statistics
+import pandas as pd
 
 
 # *** Classes
 class Set:
-
     """Class that makes sets"""
 
-    def __init__(self, data: dict):
-        self.data = data
+    def __init__(self, csv: str, dataType: dict):
+        self.csv = csv
+        self.dataType = dataType
+        self.data = self.dataFinder()
         # data organized as [[time][open][close]]
         self.dataOrganized = self.dataOrganizer()
+
+    # DATA FUNCTIONS
+
+    def dataFinder(self, csv) -> list:
+        csvLocation = self.csv
+
+        with open(f"{csvLocation}.csv", "r") as file:
+            listOfLines = file.read().splitlines()
+            pass
+
+        # If you want only last row then you need to specify row range as follows
+        # df=pd.DataFrame(file.iloc[-1:,:].values)
+        return listOfLines
+
+    def dataOrganizer(self) -> list:
+        """
+        Organizes the data given to the class.
+        Data recieved : { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
+        Data exported : [ [ <time>, <time> ] [ <open>, <open> ], [ <close>, <close> ] ]
+        """
+        data = self.data
+        dataType = self.dataType
+
+        dataOrganized = [[], [], []]
+        for keys, values in data.items():
+            try:
+                dataOrganized[0].append(keys)
+                dataOrganized[1].append(values[0])
+                dataOrganized[2].append(values[1])
+            except TypeError:
+                dataOrganized[0].append(keys)
+                dataOrganized[1].append(values)
+                dataOrganized[2].append(values)
+
+        return dataOrganized
 
     # REGRESSION LINE FUNCTIONS
 
@@ -151,26 +188,6 @@ class Set:
 
             with open("RIIS/data/set.json", "w") as f:
                 json.dump(data, f)
-
-    def dataOrganizer(self) -> list:
-        """
-        Organizes the data given to the class.
-        Data recieved : { <time>: ( <open>, <close> ), <time>: ( <open>, <close> ) }
-        Data exported : [ [ <time>, <time> ] [ <open>, <open> ], [ <close>, <close> ] ]
-        """
-        data = self.data
-        dataOrganized = [[], [], []]
-        for keys, values in data.items():
-            try:
-                dataOrganized[0].append(keys)
-                dataOrganized[1].append(values[0])
-                dataOrganized[2].append(values[1])
-            except TypeError:
-                dataOrganized[0].append(keys)
-                dataOrganized[1].append(values)
-                dataOrganized[2].append(values)
-
-        return dataOrganized
 
     def oppositeDirection(self, previousDirection):
         if previousDirection == "UPWARD":
